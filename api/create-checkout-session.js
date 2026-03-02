@@ -6,9 +6,9 @@ export default async function handler(req, res) {
   const { tier } = req.body;
 
   const prices = {
-    premium: "price_1T6X5jDCY27ZjW0tY6tXDKVn",
-    standard: "price_1T6XG3DCY27ZjW0tdwZWBLSF",
-    basic: "price_1T6XZXDCY27ZjW0tFeuK9hzY"
+    premium: "price_1T6X5jDCY27ZjwOtY6tXDKVn",
+    standard: "price_1T6XG3DCY27ZjwOtdwZWBLSP",
+    basic: "price_1T6XZXDCY27ZjwOtFeuK9hzY"
   };
 
   const session = await stripe.checkout.sessions.create({
