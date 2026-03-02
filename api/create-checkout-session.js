@@ -44,7 +44,7 @@ export default async function handler(req, res) {
         },
       ],
       mode: "payment",
-      success_url: "https://iqdemie.com/results?paid=true",
+      success_url: "https://iqdemie.com/results?paid=true&id={CHECKOUT_SESSION_ID}",
       cancel_url: "https://iqdemie.com/checkout",
     });
 
