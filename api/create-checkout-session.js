@@ -23,7 +23,7 @@ export default async function handler(req, res) {
 
   try {
 
-    const { tier } = req.body;
+    const { tier, iq_session } = req.body;
 
     const prices = {
       premium: "price_1T6X5jDCY27ZjwOtY6tXDKVn",
@@ -44,8 +44,8 @@ export default async function handler(req, res) {
         },
       ],
       mode: "payment",
-      success_url: "https://iqdemie.com/results?paid=true&id={CHECKOUT_SESSION_ID}",
-      cancel_url: "https://iqdemie.com/checkout",
+      success_url: `https://iqdemie.com/results?paid=true&iq_session=${iq_session}`,
+      cancel_url: `https://iqdemie.com/checkout?iq_session=${iq_session}`,
     });
 
     return res.status(200).json({ url: session.url });
