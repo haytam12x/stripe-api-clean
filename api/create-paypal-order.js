@@ -86,7 +86,7 @@ convert to USD
 */
 
 if(CONVERT_TO_USD[currency]){
-  price = (price * CONVERT_TO_USD[currency]).toFixed(2)
+  price = Number((price * CONVERT_TO_USD[currency]).toFixed(2))
   currency = "USD"
 }
 
