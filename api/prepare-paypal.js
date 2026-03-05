@@ -14,49 +14,35 @@ export default async function handler(req, res){
     const PAYPAL_SUPPORTED = ["AUD","BRL","CAD","CNY","CZK","DKK","EUR","HKD","HUF","ILS",
       "JPY","MYR","MXN","TWD","NZD","NOK","PHP","PLN","GBP","SGD","SEK","CHF","THB","USD"];
 
-    // In-country only per PayPal:
+    // In-country-only per PayPal:
     const IN_COUNTRY_ONLY = ["BRL","CNY","MYR"];
 
-    // Fallback conversion table (approx USD rates) — covers your full list
-    // NOTE: these are fallback approximations. Use exchange API in prod.
+    // Fallback conversion table (approx USD rates) — covers your currencies list
     const CONVERT_TO_USD = {
-      INR: 0.0124,   // 1 INR ≈ 0.0124 USD
-      PHP: 0.018,    // 1 PHP ≈ 0.018 USD
-      VND: 0.000043, // 1 VND ≈ 0.000043 USD
-      IDR: 0.000067, // 1 IDR ≈ 0.000067 USD
-      NGN: 0.0025,   // 1 NGN ≈ 0.0025 USD (approx)
-      PKR: 0.0036,
-      BDT: 0.0091,
-      EGP: 0.020,
-      ZAR: 0.053,
-      MXN: 0.052,
-      BRL: 0.19,
-      ARS: 0.005,    // very approximate
-      THB: 0.028,
-      TRY: 0.031,
-      SAR: 0.27,
-      KZT: 0.0022,
-      RUB: 0.011,
-      KRW: 0.00075,
-      ISK: 0.0073,
-      // add others you expect to see...
+      INR: 0.0124, PHP: 0.018, VND: 0.000043, IDR: 0.000067, NGN: 0.0025,
+      PKR: 0.0036, BDT: 0.0091, EGP: 0.020, ZAR: 0.053, MXN: 0.052,
+      BRL: 0.19, ARS: 0.005, THB: 0.028, TRY: 0.031, SAR: 0.27,
+      KZT: 0.0022, RUB: 0.011, KRW: 0.00075, ISK: 0.0073
     };
+
+    // Zero-decimal currencies list (PayPal expects integer amounts)
+    const ZERO_DECIMALS = ["JPY"];
 
     let finalCurrency = displayCurrency;
     let finalAmount = Number(rawPrice.toFixed(2));
 
-    // If currency is PayPal-supported and not in-country-only -> use it directly
+    // If currency is PayPal-supported and not in-country-only -> use as-is
     if (PAYPAL_SUPPORTED.includes(displayCurrency) && !IN_COUNTRY_ONLY.includes(displayCurrency)) {
       finalCurrency = displayCurrency;
-      finalAmount = Number(rawPrice.toFixed(2));
+      finalAmount = ZERO_DECIMALS.includes(displayCurrency) ? Math.round(rawPrice) : Number(rawPrice.toFixed(2));
     } else {
-      // Need to produce PayPal-supported currency; choose USD fallback
+      // fallback: convert to USD (server authoritative)
       if (displayCurrency === "USD") {
         finalCurrency = "USD";
         finalAmount = Number(rawPrice.toFixed(2));
       } else {
-        // Try live conversion (preferred)
         try {
+          // live conversion
           const q = `https://api.exchangerate.host/convert?from=${encodeURIComponent(displayCurrency)}&to=USD&amount=${encodeURIComponent(String(rawPrice))}`;
           const r = await fetch(q);
           const json = await r.json();
@@ -67,11 +53,12 @@ export default async function handler(req, res){
             finalCurrency = "USD";
             finalAmount = Number((rawPrice * CONVERT_TO_USD[displayCurrency]).toFixed(2));
           } else {
+            // Last-resort: keep numeric but set USD to avoid PayPal rejection (rare)
             finalCurrency = "USD";
-            finalAmount = Number(rawPrice.toFixed(2)); // last-resort
+            finalAmount = Number(rawPrice.toFixed(2));
           }
         } catch (err) {
-          // fallback table if API fails
+          // API failed -> fallback table
           if (CONVERT_TO_USD[displayCurrency]) {
             finalCurrency = "USD";
             finalAmount = Number((rawPrice * CONVERT_TO_USD[displayCurrency]).toFixed(2));
@@ -81,6 +68,11 @@ export default async function handler(req, res){
           }
         }
       }
+    }
+
+    // If finalCurrency is zero-decimal, ensure integer
+    if (ZERO_DECIMALS.includes(finalCurrency)) {
+      finalAmount = Math.round(finalAmount);
     }
 
     console.log("prepare-paypal:", { displayCurrency, rawPrice, finalCurrency, finalAmount });
