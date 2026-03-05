@@ -1,4 +1,11 @@
 // /api/prepare-paypal
+
+const FORCE_USD = [
+"INR","PHP","VND","IDR","NGN",
+"PKR","BDT","EGP","BRL","ARS",
+"THB","TRY","ZAR","KZT","RUB","KRW"
+];
+
 export default async function handler(req, res){
   res.setHeader("Access-Control-Allow-Origin","*");
   res.setHeader("Access-Control-Allow-Methods","POST, OPTIONS");
@@ -12,10 +19,10 @@ export default async function handler(req, res){
 
     // PayPal official supported list:
     const PAYPAL_SUPPORTED = ["AUD","BRL","CAD","CNY","CZK","DKK","EUR","HKD","HUF","ILS",
-      "JPY","MYR","MXN","TWD","NZD","NOK","PHP","PLN","GBP","SGD","SEK","CHF","THB","USD"];
+      "JPY","MYR","MXN","TWD","NZD","NOK","PHP","PLN","GBP","SGD","SEK","CHF","THB","USD","KRW"];
 
     // In-country-only per PayPal:
-    const IN_COUNTRY_ONLY = ["BRL","CNY","MYR"];
+    const IN_COUNTRY_ONLY = ["CNY","MYR"];
 
     // Fallback conversion table (approx USD rates) — covers your currencies list
     const CONVERT_TO_USD = {
@@ -32,7 +39,11 @@ export default async function handler(req, res){
     let finalAmount = Number(rawPrice.toFixed(2));
 
     // If currency is PayPal-supported and not in-country-only -> use as-is
-    if (PAYPAL_SUPPORTED.includes(displayCurrency) && !IN_COUNTRY_ONLY.includes(displayCurrency)) {
+    if (
+PAYPAL_SUPPORTED.includes(displayCurrency) &&
+!IN_COUNTRY_ONLY.includes(displayCurrency) &&
+!FORCE_USD.includes(displayCurrency)
+) {
       finalCurrency = displayCurrency;
       finalAmount = ZERO_DECIMALS.includes(displayCurrency) ? Math.round(rawPrice) : Number(rawPrice.toFixed(2));
     } else {
