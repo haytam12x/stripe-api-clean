@@ -56,5 +56,10 @@ export default async function handler(req, res) {
 
   const order = await orderRes.json()
 
-  res.status(200).json(order)
+if (!order.id) {
+  console.log("PAYPAL ERROR:", order)
+  return res.status(400).json(order)
+}
+
+res.status(200).json(order)
 }
