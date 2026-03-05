@@ -30,7 +30,7 @@ export default async function handler(req, res) {
   const tokenData = await tokenRes.json()
   const accessToken = tokenData.access_token
 
-  const { price } = req.body
+  const { price, currency } = req.body
 
   const orderRes = await fetch(
     "https://api-m.sandbox.paypal.com/v2/checkout/orders",
@@ -45,9 +45,9 @@ export default async function handler(req, res) {
         purchase_units: [
           {
             amount: {
-              currency_code: "USD",
-              value: price
-            }
+  currency_code: currency,
+  value: price
+}
           }
         ]
       })
