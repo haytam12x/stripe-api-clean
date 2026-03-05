@@ -26,7 +26,7 @@ export default async function handler(req, res){
 
     // Fallback conversion table (approx USD rates) — covers your currencies list
     const CONVERT_TO_USD = {
-      INR: 0.0107, PHP: 0.018, VND: 0.000043, IDR: 0.000067, NGN: 0.00065,
+      INR: 0.0106, PHP: 0.018, VND: 0.000043, IDR: 0.000067, NGN: 0.00065,
       PKR: 0.0036, BDT: 0.0091, EGP: 0.020, ZAR: 0.053, MXN: 0.060,
       BRL: 0.19, ARS: 0.00075, THB: 0.028, TRY: 0.031, SAR: 0.27,
       KZT: 0.0022, RUB: 0.011, KRW: 0.00075, ISK: 0.0073
