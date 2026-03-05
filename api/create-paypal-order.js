@@ -42,7 +42,7 @@ let price = Number(body.price)
 
 if(currency === "INR"){
   currency = "USD"
-  price = (price * 0.0125).toFixed(2)
+  price = (price * 0.0124).toFixed(2)
 }
 
 if(currency === "PKR"){
