@@ -36,39 +36,27 @@ export default async function handler(req, res) {
 
   const accessToken = tokenData.access_token
 
-  const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body
+  // core part inside /api/create-paypal-order
+const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+const amount = String(body.amount || body.value || '0.00');
+const currency = (body.currency || 'USD').toUpperCase();
 
-  const amount = String(body.amount || "0.00")
-  const currency = (body.currency || "USD").toUpperCase()
-
-  const orderRes = await fetch(
-    "https://api-m.sandbox.paypal.com/v2/checkout/orders",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        intent: "CAPTURE",
-        purchase_units: [
-          {
-            amount: {
-              currency_code: currency,
-              value: amount
-            }
-          }
-        ]
-      })
-    }
-  )
+// then use amount and currency to create the PayPal order:
+const orderRes = await fetch("https://api-m.sandbox.paypal.com/v2/checkout/orders", {
+  method:"POST",
+  headers: { Authorization: `Bearer ${accessToken}`, "Content-Type":"application/json" },
+  body: JSON.stringify({
+    intent: "CAPTURE",
+    purchase_units: [{ amount: { currency_code: currency, value: String(amount) } }]
+  })
+});
 
   const order = await orderRes.json()
 
-  if (!order.id) {
-    console.log("PAYPAL ORDER ERROR:", order)
-    return res.status(400).json(order)
-  }
+if (!order || !order.id) {
+  console.log("PAYPAL ORDER ERROR:", order)
+  return res.status(400).json({ error: "PayPal create order failed", detail: order })
+}
 
-  res.status(200).json(order)
+return res.status(200).json(order)
 }
