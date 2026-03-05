@@ -40,50 +40,63 @@ export default async function handler(req, res) {
   let currency = body.currency
 let price = Number(body.price)
 
-if(currency === "INR"){
-  currency = "USD"
-  price = (price * 0.0124).toFixed(2)
+/*
+PAYPAL SUPPORTED CURRENCIES
+(source: PayPal docs)
+*/
+const PAYPAL_SUPPORTED = [
+"AUD","BRL","CAD","CNY","CZK","DKK","EUR","HKD","HUF","ILS",
+"JPY","MYR","MXN","TWD","NZD","NOK","PHP","PLN","GBP","SGD",
+"SEK","CHF","THB","USD"
+]
+
+/*
+Currencies supported only in-country
+Safer to convert unless your PayPal account
+is registered in those countries
+*/
+const IN_COUNTRY_ONLY = ["BRL","CNY","MYR"]
+
+/*
+Currencies NOT supported by PayPal
+(based on your pricing system)
+These must be converted
+*/
+const CONVERT_TO_USD = {
+  INR:0.012,
+  SAR:0.27,
+  KZT:0.0022,
+  RUB:0.011,
+  KRW:0.00075,
+  ISK:0.0073,
+  VND:0.000041,
+  IDR:0.000064,
+  NGN:0.00063,
+  PKR:0.0036,
+  BDT:0.0091,
+  EGP:0.020,
+  ZAR:0.053,
+  ARS:0.0012,
+  TRY:0.031
 }
 
-if(currency === "PKR"){
+/*
+If currency unsupported or risky
+convert to USD
+*/
+
+if(CONVERT_TO_USD[currency]){
+  price = (price * CONVERT_TO_USD[currency]).toFixed(2)
   currency = "USD"
-  price = (price * 0.0036).toFixed(2)
 }
 
-if(currency === "BDT"){
+/*
+Also convert if PayPal doesn't support it
+*/
+
+if(!PAYPAL_SUPPORTED.includes(currency) || IN_COUNTRY_ONLY.includes(currency)){
   currency = "USD"
-  price = (price * 0.0091).toFixed(2)
 }
-
-if(currency === "NGN"){
-  currency = "USD"
-  price = (price * 0.00063).toFixed(2)
-}
-
-if(currency === "VND"){
-  currency = "USD"
-  price = (price * 0.000041).toFixed(2)
-}
-
-if(currency === "IDR"){
-  currency = "USD"
-  price = (price * 0.000064).toFixed(2)
-}
-
-if(currency === "EGP"){
-  currency = "USD"
-  price = (price * 0.020).toFixed(2)
-}
-
-  /* PAYPAL UNSUPPORTED CURRENCIES FALLBACK */
-
-  if(currency === "INR") currency = "USD"
-  if(currency === "PKR") currency = "USD"
-  if(currency === "BDT") currency = "USD"
-  if(currency === "NGN") currency = "USD"
-  if(currency === "VND") currency = "USD"
-  if(currency === "IDR") currency = "USD"
-  if(currency === "EGP") currency = "USD"
 
   const orderRes = await fetch(
     "https://api-m.sandbox.paypal.com/v2/checkout/orders",
