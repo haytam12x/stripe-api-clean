@@ -37,66 +37,9 @@ export default async function handler(req, res) {
   const accessToken = tokenData.access_token
 
   const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body
-  let currency = body.currency
-let price = Number(body.price)
 
-/*
-PAYPAL SUPPORTED CURRENCIES
-(source: PayPal docs)
-*/
-const PAYPAL_SUPPORTED = [
-"AUD","BRL","CAD","CNY","CZK","DKK","EUR","HKD","HUF","ILS",
-"JPY","MYR","MXN","TWD","NZD","NOK","PHP","PLN","GBP","SGD",
-"SEK","CHF","THB","USD"
-]
-
-/*
-Currencies supported only in-country
-Safer to convert unless your PayPal account
-is registered in those countries
-*/
-const IN_COUNTRY_ONLY = ["BRL","CNY","MYR"]
-
-/*
-Currencies NOT supported by PayPal
-(based on your pricing system)
-These must be converted
-*/
-const CONVERT_TO_USD = {
-  INR:0.012,
-  SAR:0.27,
-  KZT:0.0022,
-  RUB:0.011,
-  KRW:0.00075,
-  ISK:0.0073,
-  VND:0.000041,
-  IDR:0.000064,
-  NGN:0.00063,
-  PKR:0.0036,
-  BDT:0.0091,
-  EGP:0.020,
-  ZAR:0.053,
-  ARS:0.0012,
-  TRY:0.031
-}
-
-/*
-If currency unsupported or risky
-convert to USD
-*/
-
-if(CONVERT_TO_USD[currency]){
-  price = Number((price * CONVERT_TO_USD[currency]).toFixed(2))
-  currency = "USD"
-}
-
-/*
-Also convert if PayPal doesn't support it
-*/
-
-if(!PAYPAL_SUPPORTED.includes(currency) || IN_COUNTRY_ONLY.includes(currency)){
-  currency = "USD"
-}
+  const amount = String(body.amount || "0.00")
+  const currency = (body.currency || "USD").toUpperCase()
 
   const orderRes = await fetch(
     "https://api-m.sandbox.paypal.com/v2/checkout/orders",
@@ -112,7 +55,7 @@ if(!PAYPAL_SUPPORTED.includes(currency) || IN_COUNTRY_ONLY.includes(currency)){
           {
             amount: {
               currency_code: currency,
-              value: String(price)
+              value: amount
             }
           }
         ]
