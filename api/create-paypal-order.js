@@ -46,7 +46,7 @@ export default async function handler(req, res) {
           {
             amount: {
   currency_code: currency,
-  value: price
+  value: String(price)
 }
           }
         ]
