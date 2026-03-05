@@ -28,19 +28,27 @@ export default async function handler(req, res) {
   )
 
   const tokenData = await tokenRes.json()
+
+  if(!tokenData.access_token){
+    console.log("PAYPAL TOKEN ERROR:", tokenData)
+    return res.status(500).json({error:"PayPal auth failed"})
+  }
+
   const accessToken = tokenData.access_token
 
   const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body
-const price = body.price
-let currency = body.currency
+  const price = body.price
+  let currency = body.currency
 
-if(currency === "INR") currency = "USD"
-if(currency === "PKR") currency = "USD"
-if(currency === "BDT") currency = "USD"
-if(currency === "NGN") currency = "USD"
-if(currency === "VND") currency = "USD"
-if(currency === "IDR") currency = "USD"
-if(currency === "EGP") currency = "USD"
+  /* PAYPAL UNSUPPORTED CURRENCIES FALLBACK */
+
+  if(currency === "INR") currency = "USD"
+  if(currency === "PKR") currency = "USD"
+  if(currency === "BDT") currency = "USD"
+  if(currency === "NGN") currency = "USD"
+  if(currency === "VND") currency = "USD"
+  if(currency === "IDR") currency = "USD"
+  if(currency === "EGP") currency = "USD"
 
   const orderRes = await fetch(
     "https://api-m.sandbox.paypal.com/v2/checkout/orders",
@@ -55,9 +63,9 @@ if(currency === "EGP") currency = "USD"
         purchase_units: [
           {
             amount: {
-  currency_code: currency,
-  value: String(price)
-}
+              currency_code: currency,
+              value: String(price)
+            }
           }
         ]
       })
@@ -66,10 +74,10 @@ if(currency === "EGP") currency = "USD"
 
   const order = await orderRes.json()
 
-if (!order.id) {
-  console.log("PAYPAL ERROR:", order)
-  return res.status(400).json(order)
-}
+  if (!order.id) {
+    console.log("PAYPAL ORDER ERROR:", order)
+    return res.status(400).json(order)
+  }
 
-res.status(200).json(order)
+  res.status(200).json(order)
 }
