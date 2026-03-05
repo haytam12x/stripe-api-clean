@@ -32,7 +32,15 @@ export default async function handler(req, res) {
 
   const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body
 const price = body.price
-const currency = body.currency
+let currency = body.currency
+
+if(currency === "INR") currency = "USD"
+if(currency === "PKR") currency = "USD"
+if(currency === "BDT") currency = "USD"
+if(currency === "NGN") currency = "USD"
+if(currency === "VND") currency = "USD"
+if(currency === "IDR") currency = "USD"
+if(currency === "EGP") currency = "USD"
 
   const orderRes = await fetch(
     "https://api-m.sandbox.paypal.com/v2/checkout/orders",
