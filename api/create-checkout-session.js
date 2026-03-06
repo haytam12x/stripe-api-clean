@@ -4,19 +4,14 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export default async function handler(req, res) {
 
-  // ===============================
-  // CORS CONFIG
-  // ===============================
   res.setHeader("Access-Control-Allow-Origin", "https://iqdemie.com");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  // Handle preflight request
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
 
-  // Only allow POST
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
@@ -46,6 +41,9 @@ export default async function handler(req, res) {
       mode: "payment",
       success_url: `https://iqdemie.com/payment-success?iq_session=${iq_session}`,
       cancel_url: `https://iqdemie.com/checkout?iq_session=${iq_session}`,
+      metadata: {
+        iq_session: iq_session
+      }
     });
 
     return res.status(200).json({ url: session.url });
