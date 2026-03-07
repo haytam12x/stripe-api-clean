@@ -17,24 +17,27 @@ export default async function handler(req, res) {
   }
 
   try {
+    const { amount, currency, iq_session } = req.body;
 
-    const { tier, iq_session } = req.body;
-
-    const prices = {
-      premium: "price_1T6X5jDCY27ZjwOtY6tXDKVn",
-      standard: "price_1T6XG3DCY27ZjwOtdwZWBLSP",
-      basic: "price_1T6XZXDCY27ZjwOtFeuK9hzY"
-    };
-
-    if (!prices[tier]) {
-      return res.status(400).json({ error: "Invalid tier" });
+    if (!amount || !currency || !iq_session) {
+      return res.status(400).json({ error: "Missing required fields" });
     }
+
+    const unitAmount = currency === "JPY" || currency === "KRW"
+      ? Math.round(Number(amount))
+      : Math.round(Number(amount) * 100);
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: [
         {
-          price: prices[tier],
+          price_data: {
+            currency: currency.toLowerCase(),
+            product_data: {
+              name: "IQ Results & Certificate",
+            },
+            unit_amount: unitAmount,
+          },
           quantity: 1,
         },
       ],
