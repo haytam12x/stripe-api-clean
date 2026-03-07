@@ -73,7 +73,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Webhook verification failed" });
   }
 
-  if (event.type === "PAYMENT.CAPTURE.COMPLETED" || body.event_type === "CHECKOUT.ORDER.APPROVED") {
+  if (body.event_type === "PAYMENT.CAPTURE.COMPLETED" || body.event_type === "CHECKOUT.ORDER.APPROVED") {
     const iq_session = body.resource?.custom_id || 
                        body.resource?.purchase_units?.[0]?.custom_id;
 
