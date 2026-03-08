@@ -1,34 +1,35 @@
 import Stripe from "stripe";
-
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
 export default async function handler(req, res) {
-
   res.setHeader("Access-Control-Allow-Origin", "https://iqdemie.com");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
-
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
-
   try {
     const { amount, currency, iq_session } = req.body;
-
     if (!amount || !currency || !iq_session) {
       return res.status(400).json({ error: "Missing required fields" });
     }
-
     const unitAmount = currency === "JPY" || currency === "KRW"
       ? Math.round(Number(amount))
       : Math.round(Number(amount) * 100);
-
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card", "cashapp"],
+      payment_method_options: {
+        card: {
+          request_three_d_secure: "automatic"
+        }
+      },
+      wallet_options: {
+        apple_pay: { enabled: true },
+        google_pay: { enabled: true },
+        link: { enabled: false }
+      },
       line_items: [
         {
           price_data: {
@@ -48,9 +49,7 @@ export default async function handler(req, res) {
         iq_session: iq_session
       }
     });
-
     return res.status(200).json({ url: session.url });
-
   } catch (error) {
     console.error("Stripe error:", error);
     return res.status(500).json({ error: "Internal Server Error" });
