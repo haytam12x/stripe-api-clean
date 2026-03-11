@@ -82,17 +82,20 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Missing iq_session" });
     }
 
-    const { error } = await supabase
-      .from("results")
-      .update({ paid: true })
-      .eq("session_id", iq_session);
+    const price = body.resource?.amount?.value ? parseFloat(body.resource.amount.value) : null;
+const currency = body.resource?.amount?.currency_code ? body.resource.amount.currency_code.toUpperCase() : null;
 
-    if (error) {
-      console.error("Supabase update failed:", error);
-      return res.status(500).json({ error: "Database update failed" });
-    }
+const { error } = await supabase
+  .from("results")
+  .update({ paid: true, price: price, currency: currency })
+  .eq("session_id", iq_session);
 
-    console.log("PayPal payment confirmed for session:", iq_session);
+if (error) {
+  console.error("Supabase update failed:", error);
+  return res.status(500).json({ error: "Database update failed" });
+}
+
+console.log("PayPal payment confirmed for session:", iq_session, "amount:", price, currency);
   }
 
   return res.status(200).json({ received: true });
