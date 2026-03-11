@@ -2,7 +2,6 @@ import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -30,8 +29,8 @@ export default async function handler(req, res) {
 
   const rawBody = await getRawBody(req);
   const sig = req.headers["stripe-signature"];
-
   let event;
+
   try {
     event = stripe.webhooks.constructEvent(
       rawBody,
@@ -45,7 +44,8 @@ export default async function handler(req, res) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
-    const iq_session = session.metadata?.iq_session || 
+
+    const iq_session = session.metadata?.iq_session ||
                        session.client_reference_id;
 
     if (!iq_session) {
@@ -53,9 +53,19 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Missing iq_session" });
     }
 
+    // Get real amount paid — Stripe stores in smallest currency unit
+    const currency = session.currency ? session.currency.toUpperCase() : "USD";
+    const isZeroDecimal = ["JPY", "KRW", "VND", "IDR", "BIF", "CLP", "GNF", "MGA", "PYG", "RWF", "UGX", "XAF", "XOF", "XPF"].includes(currency);
+    const amountTotal = session.amount_total || 0;
+    const price = isZeroDecimal ? amountTotal : amountTotal / 100;
+
     const { error } = await supabase
       .from("results")
-      .update({ paid: true })
+      .update({
+        paid: true,
+        price: price,
+        currency: currency
+      })
       .eq("session_id", iq_session);
 
     if (error) {
@@ -63,7 +73,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: "Database update failed" });
     }
 
-    console.log("Payment confirmed for session:", iq_session);
+    console.log("Payment confirmed for session:", iq_session, "amount:", price, currency);
   }
 
   return res.status(200).json({ received: true });
