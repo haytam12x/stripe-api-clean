@@ -15,7 +15,7 @@ export default async function handler(req, res) {
     if (!amount || !currency || !iq_session) {
       return res.status(400).json({ error: "Missing required fields" });
     }
-    const unitAmount = currency === "JPY" || currency === "KRW"
+    const unitAmount = currency === "JPY" || currency === "KRW" || currency === "ISK"
       ? Math.round(Number(amount))
       : Math.round(Number(amount) * 100);
     const session = await stripe.checkout.sessions.create({
