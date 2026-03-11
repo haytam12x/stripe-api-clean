@@ -25,7 +25,7 @@ async function sendEmail(to, name, subject, htmlContent) {
 }
 
 export default async function handler(req, res) {
-  if (req.headers["x-cron-secret"] !== "140823") {
+  if (req.query.secret !== "140823") {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
