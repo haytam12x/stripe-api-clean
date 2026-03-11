@@ -55,7 +55,7 @@ export default async function handler(req, res) {
 
     // Get real amount paid — Stripe stores in smallest currency unit
     const currency = session.currency ? session.currency.toUpperCase() : "USD";
-    const isZeroDecimal = ["JPY", "KRW", "VND", "IDR", "BIF", "CLP", "GNF", "MGA", "PYG", "RWF", "UGX", "XAF", "XOF", "XPF"].includes(currency);
+    const isZeroDecimal = ["JPY", "KRW", "VND", "IDR", "ISK", "BIF", "CLP", "GNF", "MGA", "PYG", "RWF", "UGX", "XAF", "XOF", "XPF"].includes(currency);
     const amountTotal = session.amount_total || 0;
     const price = isZeroDecimal ? amountTotal : amountTotal / 100;
 
