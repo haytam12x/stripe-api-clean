@@ -15,15 +15,24 @@ export default async function handler(req, res) {
     if (!amount || !currency || !iq_session) {
       return res.status(400).json({ error: "Missing required fields" });
     }
-    const unitAmount = currency === "JPY" || currency === "KRW" || currency === "ISK"
-      ? Math.round(Number(amount))
-      : Math.round(Number(amount) * 100);
+    let finalAmount = amount;
+let finalCurrency = currency;
+
+if (currency === "ISK") {
+  finalAmount = "12.99";
+  finalCurrency = "USD";
+}
+
+const unitAmount = finalCurrency === "JPY" || finalCurrency === "KRW"
+  ? Math.round(Number(finalAmount))
+  : Math.round(Number(finalAmount) * 100);
+    
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card", "cashapp"],
       line_items: [
         {
           price_data: {
-            currency: currency.toLowerCase(),
+            currency: finalCurrency.toLowerCase(),
             product_data: {
               name: "IQ Results & Certificate",
             },
