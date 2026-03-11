@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/send-retargeting-emails?secret=140823",
+      "schedule": "0 * * * *"
+    }
+  ]
+}
