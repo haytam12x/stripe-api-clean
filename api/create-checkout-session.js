@@ -19,7 +19,7 @@ export default async function handler(req, res) {
 let finalCurrency = currency;
 
 if (currency === "ISK") {
-  finalAmount = "12.99";
+  finalAmount = "13.50";
   finalCurrency = "USD";
 }
 
