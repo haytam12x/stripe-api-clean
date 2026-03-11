@@ -36,7 +36,22 @@ export default async function handler(req, res) {
       process.env.SUPABASE_URL,
       process.env.SUPABASE_SERVICE_ROLE_KEY
     );
-    await supabase.from("results").update({ paid: true }).eq("session_id", iq_session);
+
+    // Extract real price and currency from PayPal capture response
+    const capture = captureData.purchase_units?.[0]?.payments?.captures?.[0];
+    const price = capture ? parseFloat(capture.amount.value) : null;
+    const currency = capture ? capture.amount.currency_code.toUpperCase() : null;
+
+    await supabase
+      .from("results")
+      .update({
+        paid: true,
+        price: price,
+        currency: currency
+      })
+      .eq("session_id", iq_session);
+
+    console.log("PayPal payment confirmed for session:", iq_session, "amount:", price, currency);
     return res.status(200).json({ status: "COMPLETED" });
   } else {
     console.error("Capture failed:", captureData);
