@@ -16,16 +16,12 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Missing required fields" });
     }
     let finalAmount = amount;
-let finalCurrency = currency;
+    let finalCurrency = currency;
 
-if (currency === "ISK") {
-  finalAmount = "14.50";
-  finalCurrency = "USD";
-}
-
-const unitAmount = finalCurrency === "JPY" || finalCurrency === "KRW"
-  ? Math.round(Number(finalAmount))
-  : Math.round(Number(finalAmount) * 100);
+    // Fix for zero-decimal currencies (JPY, KRW, ISK)
+    const unitAmount = ["JPY", "KRW", "ISK"].includes(finalCurrency.toUpperCase())
+      ? Math.round(Number(finalAmount))
+      : Math.round(Number(finalAmount) * 100);
     
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card", "cashapp"],
