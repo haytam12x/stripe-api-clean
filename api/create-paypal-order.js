@@ -29,7 +29,7 @@ export default async function handler(req, res) {
   const currency = (body.currency || 'USD').toUpperCase();
   const iq_session = body.iq_session || '';
 
-  const ZERO_DECIMALS = ["JPY"];
+  const ZERO_DECIMALS = ["JPY", "KRW"];
   let valueToSend = amount;
   if (ZERO_DECIMALS.includes(currency)) {
     valueToSend = String(Math.round(Number(amount)));
