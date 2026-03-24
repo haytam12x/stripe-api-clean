@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   if (!PAYPAL_CLIENT || !PAYPAL_SECRET) {
     console.error("Missing PayPal credentials");
     return res.status(500).json({ error: "PayPal config missing" });
-  }
+  } 
 
   const auth = Buffer.from(`${PAYPAL_CLIENT}:${PAYPAL_SECRET}`).toString("base64");
   const tokenRes = await fetch("https://api-m.paypal.com/v1/oauth2/token", {
