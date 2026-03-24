@@ -3,7 +3,7 @@
 const FORCE_USD = [
 "INR","PHP","VND","IDR","NGN",
 "PKR","BDT","EGP","BRL","ARS",
-"THB","TRY","ZAR","KZT","RUB","KRW"
+"THB","TRY","ZAR","KZT","RUB"
 ];
 
 export default async function handler(req, res){
@@ -33,7 +33,7 @@ export default async function handler(req, res){
     };
 
     // Zero-decimal currencies list (PayPal expects integer amounts)
-    const ZERO_DECIMALS = ["JPY"];
+    const ZERO_DECIMALS = ["JPY", "KRW"];
 
     let finalCurrency = displayCurrency;
     let finalAmount = Number(rawPrice.toFixed(2));
