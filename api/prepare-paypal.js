@@ -19,7 +19,7 @@ export default async function handler(req, res){
 
     // PayPal official supported list:
     const PAYPAL_SUPPORTED = ["AUD","BRL","CAD","CNY","CZK","DKK","EUR","HKD","HUF","ILS",
-      "JPY","MYR","MXN","TWD","NZD","NOK","PHP","PLN","GBP","SGD","SEK","CHF","THB","USD","KRW"];
+      "JPY","MYR","MXN","TWD","NZD","NOK","PHP","PLN","GBP","SGD","SEK","CHF","THB","USD","KRW"]; 
 
     // In-country-only per PayPal:
     const IN_COUNTRY_ONLY = ["CNY","MYR"];
