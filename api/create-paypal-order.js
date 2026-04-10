@@ -34,6 +34,7 @@ const APPROX_USD_RATES = {
   BDT: 0.0091,
   CLP: 0.001,
   RON: 0.22,
+  MYR: 0.21,
 };
 
 function getApproxUsdAmount(amount, currency) {
