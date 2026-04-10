@@ -17,6 +17,35 @@ function getCountryCode(req, body) {
   return normalizeCountryCode(body.country_code || body.country || "US");
 }
 
+const APPROX_USD_RATES = {
+  AED: 0.2723,
+  SAR: 0.2666,
+  QAR: 0.2747,
+  INR: 0.012,
+  PKR: 0.0036,
+  IDR: 0.000061,
+  VND: 0.000039,
+  TRY: 0.031,
+  ZAR: 0.053,
+  NGN: 0.00065,
+  EGP: 0.020,
+  COP: 0.00025,
+  PEN: 0.27,
+  BDT: 0.0091,
+  CLP: 0.001,
+  RON: 0.22,
+};
+
+function getApproxUsdAmount(amount, currency) {
+  const rate = APPROX_USD_RATES[currency];
+
+  if (!rate) {
+    return Number(Number(amount).toFixed(2));
+  }
+
+  return Number((Number(amount) * rate).toFixed(2));
+}
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "https://iqdemie.com");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -49,20 +78,15 @@ export default async function handler(req, res) {
 
     const chargeCurrency = getPayPalCurrencyForDisplayCurrency(pricing.currency);
 
-    let valueToSend;
+       let valueToSend;
     if (chargeCurrency === pricing.currency) {
       valueToSend = isZeroDecimalCurrency(chargeCurrency)
         ? String(Math.round(Number(pricing.price)))
         : Number(Number(pricing.price).toFixed(2)).toString();
     } else {
-      const usdPrice = pricing.planId === "basic"
-        ? 2.99
-        : pricing.planId === "full"
-          ? 5.99
-          : 19.99;
-
-      valueToSend = Number(usdPrice.toFixed(2)).toString();
+      valueToSend = getApproxUsdAmount(pricing.price, pricing.currency).toString();
     }
+
 
     const auth = Buffer.from(`${PAYPAL_CLIENT}:${PAYPAL_SECRET}`).toString("base64");
 
