@@ -92,16 +92,18 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         intent: "CAPTURE",
-        purchase_units: [
+               purchase_units: [
           {
             amount: {
               currency_code: chargeCurrency,
               value: String(valueToSend),
             },
             custom_id: iq_session,
+            invoice_id: `${pricing.planId}__${pricing.tier}__${pricing.currency}__${pricing.price}__${pricing.countryCode}`,
             description: pricing.planName,
           },
         ],
+
         application_context: {
           brand_name: "IQDemie",
           shipping_preference: "NO_SHIPPING",
@@ -138,4 +140,3 @@ export default async function handler(req, res) {
     });
   }
 }
-
