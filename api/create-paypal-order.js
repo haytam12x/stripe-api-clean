@@ -124,7 +124,7 @@ export default async function handler(req, res) {
               value: String(valueToSend),
             },
             custom_id: iq_session,
-            invoice_id: `${pricing.planId}__${pricing.tier}__${pricing.currency}__${pricing.price}__${pricing.countryCode}`,
+            invoice_id: `${pricing.planId}__${pricing.tier}__${pricing.currency}__${pricing.price}__${pricing.countryCode}__${iq_session}`,
             description: pricing.planName,
           },
         ],
