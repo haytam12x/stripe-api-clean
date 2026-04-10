@@ -49,7 +49,7 @@ export default async function handler(req, res) {
       : Math.round(Number(pricing.price) * 100);
 
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card", "cashapp"],
+      payment_method_types: ["card"],
       line_items: [
         {
           price_data: {
