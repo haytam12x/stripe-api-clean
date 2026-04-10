@@ -64,17 +64,34 @@ export default async function handler(req, res) {
 
     const purchaseUnit = captureData.purchase_units?.[0];
     const iq_session = purchaseUnit?.custom_id;
+    const invoiceId = purchaseUnit?.invoice_id || "";
 
     if (!iq_session) {
       console.error("Missing iq_session in PayPal capture response", captureData);
       return res.status(400).json({ error: "Missing iq_session in PayPal order" });
     }
 
-    const capture = purchaseUnit?.payments?.captures?.[0];
-    const price = capture ? parseFloat(capture.amount.value) : null;
-    const currency = capture ? String(capture.amount.currency_code || "").toUpperCase() : null;
+    const parts = String(invoiceId).split("__");
+    const planId = parts[0] || null;
+    const pricingTier = parts[1] || null;
+    const displayCurrency = parts[2] || null;
+    const displayPrice = parts[3] ? parseFloat(parts[3]) : null;
+    const countryCode = parts[4] || null;
 
-    if (price === null || !currency) {
+    const planName =
+      planId === "basic"
+        ? "Basic Results"
+        : planId === "full"
+          ? "Full Results"
+          : planId === "professional"
+            ? "Full Professional Results"
+            : null;
+
+    const capture = purchaseUnit?.payments?.captures?.[0];
+    const chargedPrice = capture ? parseFloat(capture.amount.value) : null;
+    const chargedCurrency = capture ? String(capture.amount.currency_code || "").toUpperCase() : null;
+
+    if (chargedPrice === null || !chargedCurrency) {
       console.error("Missing amount or currency in PayPal capture response", captureData);
       return res.status(400).json({ error: "Missing amount or currency in PayPal capture" });
     }
@@ -89,8 +106,15 @@ export default async function handler(req, res) {
       .from("results")
       .update({
         paid: true,
-        price: price,
-        currency: currency,
+        price: chargedPrice,
+        currency: chargedCurrency,
+        plan_id: planId,
+        plan_name: planName,
+        pricing_tier: pricingTier,
+        display_currency: displayCurrency,
+        display_price: displayPrice,
+        country_code: countryCode,
+        payment_provider: "paypal",
       })
       .eq("session_id", iq_session);
 
@@ -99,7 +123,14 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: "Database update failed" });
     }
 
-    console.log("PayPal payment confirmed for session:", iq_session, "amount:", price, currency);
+    console.log(
+      "PayPal payment confirmed for session:",
+      iq_session,
+      "amount:",
+      chargedPrice,
+      chargedCurrency
+    );
+
     return res.status(200).json({ status: "COMPLETED" });
   } catch (err) {
     console.error("PayPal capture exception:", err);
@@ -109,3 +140,4 @@ export default async function handler(req, res) {
     });
   }
 }
+
