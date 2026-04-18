@@ -47,6 +47,12 @@ function getApproxUsdAmount(amount, currency) {
   return Number((Number(amount) * rate).toFixed(2));
 }
 
+function buildInvoiceId(pricing, iqSession) {
+  const uniqueSuffix = `${Date.now()}${Math.floor(Math.random() * 1000)}`;
+
+  return `${pricing.planId}__${pricing.tier}__${pricing.currency}__${pricing.price}__${pricing.countryCode}__${iqSession}__${uniqueSuffix}`.slice(0, 127);
+}
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "https://iqdemie.com");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -60,6 +66,7 @@ export default async function handler(req, res) {
 
   const PAYPAL_CLIENT = process.env.PAYPAL_CLIENT_ID;
   const PAYPAL_SECRET = process.env.PAYPAL_SECRET;
+  const PAYPAL_BASE = process.env.PAYPAL_BASE_URL || "https://api-m.paypal.com";
 
   if (!PAYPAL_CLIENT || !PAYPAL_SECRET) {
     console.error("Missing PayPal credentials");
@@ -79,7 +86,7 @@ export default async function handler(req, res) {
 
     const chargeCurrency = getPayPalCurrencyForDisplayCurrency(pricing.currency);
 
-       let valueToSend;
+    let valueToSend;
     if (chargeCurrency === pricing.currency) {
       valueToSend = isZeroDecimalCurrency(chargeCurrency)
         ? String(Math.round(Number(pricing.price)))
@@ -88,10 +95,9 @@ export default async function handler(req, res) {
       valueToSend = getApproxUsdAmount(pricing.price, pricing.currency).toString();
     }
 
-
     const auth = Buffer.from(`${PAYPAL_CLIENT}:${PAYPAL_SECRET}`).toString("base64");
 
-    const tokenRes = await fetch("https://api-m.paypal.com/v1/oauth2/token", {
+    const tokenRes = await fetch(`${PAYPAL_BASE}/v1/oauth2/token`, {
       method: "POST",
       headers: {
         Authorization: `Basic ${auth}`,
@@ -109,7 +115,7 @@ export default async function handler(req, res) {
 
     const accessToken = tokenData.access_token;
 
-    const orderRes = await fetch("https://api-m.paypal.com/v2/checkout/orders", {
+    const orderRes = await fetch(`${PAYPAL_BASE}/v2/checkout/orders`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -117,18 +123,17 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         intent: "CAPTURE",
-               purchase_units: [
+        purchase_units: [
           {
             amount: {
               currency_code: chargeCurrency,
               value: String(valueToSend),
             },
             custom_id: iq_session,
-            invoice_id: `${pricing.planId}__${pricing.tier}__${pricing.currency}__${pricing.price}__${pricing.countryCode}__${iq_session}`,
+            invoice_id: buildInvoiceId(pricing, iq_session),
             description: pricing.planName,
           },
         ],
-
         application_context: {
           brand_name: "IQDemie",
           shipping_preference: "NO_SHIPPING",
