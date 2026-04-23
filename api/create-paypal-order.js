@@ -53,6 +53,22 @@ function buildInvoiceId(pricing, iqSession) {
   return `${pricing.planId}__${pricing.tier}__${pricing.currency}__${pricing.price}__${pricing.countryCode}__${iqSession}__${uniqueSuffix}`.slice(0, 127);
 }
 
+function buildCreateOrderDebugPayload(order, pricing, chargeCurrency, chargePrice) {
+  return {
+    name: order?.name || null,
+    message: order?.message || null,
+    debug_id: order?.debug_id || null,
+    details: Array.isArray(order?.details) ? order.details : [],
+    countryCode: pricing.countryCode,
+    pricingTier: pricing.tier,
+    planId: pricing.planId,
+    displayCurrency: pricing.currency,
+    displayPrice: pricing.price,
+    chargeCurrency,
+    chargePrice,
+  };
+}
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "https://iqdemie.com");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -114,12 +130,14 @@ export default async function handler(req, res) {
     }
 
     const accessToken = tokenData.access_token;
+    const paypalRequestId = `iqdemie-${pricing.planId}-${iq_session}-${Date.now()}`.slice(0, 108);
 
     const orderRes = await fetch(`${PAYPAL_BASE}/v2/checkout/orders`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
+        "PayPal-Request-Id": paypalRequestId,
       },
       body: JSON.stringify({
         intent: "CAPTURE",
@@ -144,9 +162,12 @@ export default async function handler(req, res) {
 
     const order = await orderRes.json();
 
-    if (!order || !order.id) {
+    if (!orderRes.ok || !order || !order.id) {
       console.error("PAYPAL ORDER ERROR:", order);
-      return res.status(400).json({ error: "PayPal create order failed", detail: order });
+      return res.status(orderRes.status || 400).json({
+        error: "PayPal create order failed",
+        paypal: buildCreateOrderDebugPayload(order, pricing, chargeCurrency, Number(valueToSend)),
+      });
     }
 
     return res.status(200).json({
