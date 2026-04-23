@@ -50,6 +50,7 @@ export default async function handler(req, res) {
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
+      client_reference_id: iq_session,
       line_items: [
         {
           price_data: {
@@ -63,8 +64,8 @@ export default async function handler(req, res) {
         },
       ],
       mode: "payment",
-      success_url: `https://iqdemie.com/payment-success?iq_session=${iq_session}`,
-      cancel_url: `https://iqdemie.com/checkout?iq_session=${iq_session}`,
+      success_url: `https://iqdemie.com/payment-success?iq_session=${encodeURIComponent(iq_session)}&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `https://iqdemie.com/checkout?iq_session=${encodeURIComponent(iq_session)}`,
       metadata: {
         iq_session: iq_session,
         plan_id: pricing.planId,
