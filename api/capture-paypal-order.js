@@ -57,9 +57,18 @@ export default async function handler(req, res) {
 
     const captureData = await captureRes.json();
 
-    if (captureData.status !== "COMPLETED") {
+    if (!captureRes.ok || captureData.status !== "COMPLETED") {
       console.error("Capture failed:", captureData);
-      return res.status(400).json({ error: "Capture failed", detail: captureData });
+      return res.status(captureRes.status || 400).json({
+        error: "Capture failed",
+        paypal: {
+          name: captureData?.name || null,
+          message: captureData?.message || null,
+          debug_id: captureData?.debug_id || null,
+          details: Array.isArray(captureData?.details) ? captureData.details : [],
+          status: captureData?.status || null,
+        },
+      });
     }
 
     const purchaseUnit = captureData.purchase_units?.[0];
@@ -140,4 +149,3 @@ export default async function handler(req, res) {
     });
   }
 }
-
