@@ -17,6 +17,8 @@ const ALLOWED_ORIGINS = new Set([
   "https://www.iqdemie.com",
 ]);
 
+let resultsHasStripeCheckoutSessionIdColumn = true;
+
 function setCorsHeaders(req, res) {
   const origin = req.headers.origin;
   const allowedOrigin = ALLOWED_ORIGINS.has(origin)
@@ -47,28 +49,132 @@ function pickFirstNonEmpty() {
   return "";
 }
 
-async function getResultsRow(iqSession) {
-  if (!iqSession) return { data: null, error: null };
+function isMissingColumnError(error, columnName) {
+  const haystack = [
+    error?.message,
+    error?.details,
+    error?.hint,
+    error?.code,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
 
-  return supabase
-    .from("results")
-    .select(
-      [
-        "session_id",
-        "paid",
-        "plan_id",
-        "plan_name",
-        "pricing_tier",
-        "display_currency",
-        "display_price",
-        "country_code",
-        "payment_provider",
-        "details_completed",
-        "stripe_checkout_session_id",
-      ].join(",")
+  const needle = String(columnName || "").toLowerCase();
+
+  if (!needle) {
+    return false;
+  }
+
+  return (
+    haystack.indexOf(needle) !== -1 &&
+    (
+      haystack.indexOf("column") !== -1 ||
+      haystack.indexOf("schema cache") !== -1 ||
+      haystack.indexOf("pgrst") !== -1
     )
+  );
+}
+
+function normalizeResultsRow(row) {
+  if (!row) return null;
+
+  if (typeof row.stripe_checkout_session_id === "undefined") {
+    row.stripe_checkout_session_id = null;
+  }
+
+  return row;
+}
+
+async function getResultsRow(iqSession) {
+  if (!iqSession) {
+    return { data: null, error: null };
+  }
+
+  const baseColumns = [
+    "session_id",
+    "paid",
+    "plan_id",
+    "plan_name",
+    "pricing_tier",
+    "display_currency",
+    "display_price",
+    "country_code",
+    "payment_provider",
+    "details_completed",
+  ];
+
+  const columns = resultsHasStripeCheckoutSessionIdColumn
+    ? baseColumns.concat(["stripe_checkout_session_id"])
+    : baseColumns;
+
+  let response = await supabase
+    .from("results")
+    .select(columns.join(","))
     .eq("session_id", iqSession)
     .maybeSingle();
+
+  if (
+    response.error &&
+    resultsHasStripeCheckoutSessionIdColumn &&
+    isMissingColumnError(response.error, "stripe_checkout_session_id")
+  ) {
+    resultsHasStripeCheckoutSessionIdColumn = false;
+
+    response = await supabase
+      .from("results")
+      .select(baseColumns.join(","))
+      .eq("session_id", iqSession)
+      .maybeSingle();
+  }
+
+  if (!response.error) {
+    response.data = normalizeResultsRow(response.data);
+  }
+
+  return response;
+}
+
+async function updateResultsRow(iqSession, payload) {
+  const selectColumns = [
+    "session_id",
+    "plan_id",
+    "plan_name",
+    "details_completed",
+  ].join(",");
+
+  let safePayload = { ...payload };
+
+  if (!resultsHasStripeCheckoutSessionIdColumn) {
+    delete safePayload.stripe_checkout_session_id;
+  }
+
+  let response = await supabase
+    .from("results")
+    .update(safePayload)
+    .eq("session_id", iqSession)
+    .select(selectColumns)
+    .maybeSingle();
+
+  if (
+    response.error &&
+    resultsHasStripeCheckoutSessionIdColumn &&
+    isMissingColumnError(response.error, "stripe_checkout_session_id")
+  ) {
+    resultsHasStripeCheckoutSessionIdColumn = false;
+
+    safePayload = { ...payload };
+    delete safePayload.stripe_checkout_session_id;
+
+    response = await supabase
+      .from("results")
+      .update(safePayload)
+      .eq("session_id", iqSession)
+      .select(selectColumns)
+      .maybeSingle();
+  }
+
+  return response;
 }
 
 function buildAlreadyPaidResponse(row, iqSession, sessionId) {
@@ -216,6 +322,7 @@ export default async function handler(req, res) {
       session.metadata?.display_price,
       existingRow?.display_price
     );
+
     const parsedDisplayPrice = displayPriceRaw
       ? Number(displayPriceRaw)
       : chargedPrice;
@@ -226,9 +333,16 @@ export default async function handler(req, res) {
       currency: chargedCurrency,
       payment_provider: "stripe",
       stripe_checkout_session_id: session.id,
-      plan_id: pickFirstNonEmpty(session.metadata?.plan_id, existingRow?.plan_id) || null,
+      plan_id:
+        pickFirstNonEmpty(
+          session.metadata?.plan_id,
+          existingRow?.plan_id
+        ) || null,
       plan_name:
-        pickFirstNonEmpty(session.metadata?.plan_name, existingRow?.plan_name) || null,
+        pickFirstNonEmpty(
+          session.metadata?.plan_name,
+          existingRow?.plan_name
+        ) || null,
       pricing_tier:
         pickFirstNonEmpty(
           session.metadata?.pricing_tier,
@@ -250,12 +364,10 @@ export default async function handler(req, res) {
         ) || null,
     };
 
-    const { data: updatedRow, error: updateError } = await supabase
-      .from("results")
-      .update(payload)
-      .eq("session_id", iqSession)
-      .select("session_id, plan_id, plan_name, details_completed, stripe_checkout_session_id")
-      .maybeSingle();
+    const { data: updatedRow, error: updateError } = await updateResultsRow(
+      iqSession,
+      payload
+    );
 
     if (updateError) {
       console.error("Supabase verify update failed:", updateError);
